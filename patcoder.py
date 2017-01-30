@@ -14,8 +14,8 @@ from subprocess import Popen, PIPE
 class Test():
     def __init__(self, op, path, name, url):
         self.op = op
-        self.path = path
-        self.name = name
+        self.path = path # test_program_path
+        self.name = name # contest_name
         self.problem = os.path.basename(path).split('.')[0]
         self.url = url + Test.read(self.op.crdir + 'samplecase/' + name + '/' + self.problem + '/url.txt').strip()
     def _cmd(self, path):
@@ -332,6 +332,7 @@ class PAtCoder:
         if 'https://' in s or 'http://' in s:
             self._temp_copy(s)
         else:
+            s = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
             self._test_atcoder(s)
     def _temp_copy(self, url):
         dir = self.op.crdir + self._url_to_contest_name(url) + '/'
