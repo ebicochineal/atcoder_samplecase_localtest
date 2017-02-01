@@ -18,6 +18,8 @@ class Test():
         self.name = name # contest_name
         self.problem = os.path.basename(path).split('.')[0]
         self.url = url + Test.read(self.op.crdir + 'samplecase/' + name + '/' + self.problem + '/url.txt').strip()
+        self.cmd = self._cmd(self.path)
+        self.result = []
     def _cmd(self, path):
         lang = os.path.splitext(path)[1][1:]
         path = self._try_compile(lang, path)
@@ -39,7 +41,16 @@ class Test():
             i = i.replace('[d]', self.op.crdir + 'compile')
             r += [i]
         return r
+    def _try_compile_file_remove(self):
+        try:
+            parh = self.op.crdir + 'compile/'
+            for i in os.listdir(parh):
+                if i[:4] == "test":
+                    os.remove(parh + i)
+        except:
+            pass
     def _try_compile(self, lang, path):
+        self._try_compile_file_remove()
         try:
             if lang in self.op.cmdc:
                 print('Compile >>> ' + path)
@@ -53,8 +64,8 @@ class Test():
         green = lambda x : '\033[42;30m' + x + '\033[0m'
         yellow = lambda x : '\033[43;30m' + x + '\033[0m'
         data_in_encode = data_in.encode('utf-8')
-        din2k = Test.strlim(data_in, 2000)
-        dout2k = Test.strlim(data_out, 2000)
+        din2k = strlim(data_in, 2000)
+        dout2k = strlim(data_out, 2000)
         result = []
         start = time.time()
         p = Popen(self.cmd, stdout=PIPE, stdin=PIPE, stderr=PIPE)
@@ -74,99 +85,22 @@ class Test():
             p.wait()
             result = [yellow('TLE'), '-----', din2k, dout2k, '']
         return result
-    def test(self):
+    def test_iter(self):
         cr = self.op.crdir
         tc = 'samplecase/'
         nm = self.name + '/'
         pr = self.problem + '/'
         dpath = cr + tc + nm + pr
-        self.result = []
-        retry = True
-        while retry:
-            os.system(self.op.cls)
-            self.cmd = self._cmd(self.path)
-            if self.cmd != None:
-                self.result = []
-                print('Run >>> ' + ' '.join(self.cmd))
-                test_file_list = [x for x in os.listdir(dpath+'test_in')]
-                for i in test_file_list:
-                    data_in = Test.read(dpath + 'test_in/' + i)
-                    data_out = Test.read(dpath + 'test_out/' + i)
-                    r = self._run(data_in, data_out)
-                    self.result += [r]
-                    print(*(list(r[:2])), i)
-                retry = self._ui()
-            else:
-                print('error')
-    def _ui(self):
-        m = self.op.browser_text
-        print('samplecase view:[ENTER]' + m + '   retry:[R]' + '   quit:[Q]')
-        while 1:
-            c = self.op.getch()
-            if c == '\r':
-                return self._view_ior()
-            if c == 'q':
-                return False
-            if c == 'r':
-                return True
-            if c == 'p' and m:
-                Popen([self.op.browser, self.url])
-    def _view_ior(self):
-        n = 0
-        m = self.op.browser_text
-        while 1:
-            self._draw_ior(n)
-            c = self.op.getch()
-            if c == "\r":
-                n = (n + 1) % len(self.result)
-            if c == "q":
-                return False
-            if c == "r":
-                return True
-            if c == "p" and m:
-                Popen([self.op.browser, self.url])
-    def _draw_ior(self, n):
-        m = self.op.browser_text
-        r = self.result[n]
-        tw, th = os.get_terminal_size()
-        w = tw // 3 - 1
-        h = th - 6
-        lin = Test.to_list(r[2], w, h)
-        lout = Test.to_list(r[3], w, h)
-        lprg = Test.to_list(r[4], w, h)
-        os.system(self.op.cls)
-        print(r[0], r[1], Test.strlim('sample' + str(n), w))
-        print(' '.join([Test.strlim('data_in', w), Test.strlim('data_out', w), Test.strlim('program_out', w)]))
-        for y in range(h):
-            print('|'.join([lin[y], lout[y], lprg[y]]))
-        print('-'*(tw-1))
-        print(Test.strlim('next:[ENTER]' + m + '   retry:[R]' + '   quit:[Q]', w*2+2))
+        test_file_list = [x for x in os.listdir(dpath+'test_in')]
+        for i in test_file_list:
+            data_in = Test.read(dpath + 'test_in/' + i)
+            data_out = Test.read(dpath + 'test_out/' + i)
+            r = self._run(data_in, data_out)
+            self.result += [r]
+            yield r, i
     def read(path):
         with open(path, 'r') as f:
             return f.read()
-    def to_list(s, w, h):
-        mlen = lambda x : sum(2 if ord(y) > 255 else 1 for y in x)
-        r = []
-        for i in s.split('\n'):
-            if mlen(i) > w:
-                b = ''
-                bw = 0
-                for j in i:
-                    c = mlen(j)
-                    if bw + c > w:
-                        r += [b]
-                        b = ''
-                        bw = 0
-                    b += j
-                    bw += c
-                r += [b]
-            else:
-                r += [i]
-        if len(r) < h : r += [''] * (h-len(r))
-        if len(r) > h : r = r[:h]
-        for i in range(h):
-            r[i] = r[i] + ' ' * (w-mlen(r[i]))
-        return r
     def jadge(v1, v2):
         if v1 == v2 : return True
         if v1.strip() == v2.strip() : return True
@@ -184,12 +118,6 @@ class Test():
                 except:
                     return False
         return True
-    def strlim(s, n):
-        if n <= 3:
-            s = s[:n]
-        elif len(s) > n:
-            s = s[:n-3] + '...'
-        return s.ljust(n, ' ')
 
 class Option:
     def __init__(self):
@@ -251,34 +179,26 @@ class Option:
             return ''
 
 class AtCoder:
-    def __init__(self, op):
+    def __init__(self, op, url, contest_name):
         self.op = op
         self.username = ''
         self.password = ''
-        self.contest_url = ''
-        self.loginstate = False
+        self.contest_url = url
+        self.contest_name = contest_name
         cj = http.cookiejar.LWPCookieJar()
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
     def _login(self):
-        if not self.loginstate:
-            with open(self.op.crdir + 'login.txt', encoding='UTF-8') as f:
-                for i in f.readlines():
-                    if 'username' in i:
-                        self.username = i.split()[1].strip()
-                    elif 'password' in i:
-                        self.password = i.split()[1].strip()
-            user = {'name': self.username, 'password': self.password}
-            post = urllib.parse.urlencode(user).encode('utf-8')
-            url = 'https://practice.contest.atcoder.jp/login'
-            self.opener.open(url, post)
-            self.loginstate = True
-            print('Login')
-    def set_contest_url(self, name): 
-        self.name = name
-        print(name)
-        self.contest_url = 'https://' + self.name + '.contest.atcoder.jp'
-    def _get_contest_url(self):
-        self._login()
+        with open(self.op.crdir + 'login.txt', encoding='UTF-8') as f:
+            for i in f.readlines():
+                if 'username' in i:
+                    self.username = i.split()[1].strip()
+                elif 'password' in i:
+                    self.password = i.split()[1].strip()
+        user = {'name': self.username, 'password': self.password}
+        post = urllib.parse.urlencode(user).encode('utf-8')
+        url = 'https://practice.contest.atcoder.jp/login'
+        self.opener.open(url, post)
+    def _problem_url_list(self):
         url = self.contest_url + '/assignments'
         req = self.opener.open(url)
         problem_url = set([])
@@ -299,15 +219,15 @@ class AtCoder:
         return r
     def try_download(self):
         try:
-            tdir = self.op.crdir + 'samplecase' + '/' + self.name + '/'
+            self._login()
+            tdir = self.op.crdir + 'samplecase' + '/' + self.contest_name + '/'
             try_mkdir(tdir)
-            for i, j in self._get_contest_url():
+            for i, j in self._problem_url_list():
                 r = self._get_problem(j)
                 try_mkdir(tdir + i)
                 try_mkdir(tdir + i + '/' + 'test_in')
                 try_mkdir(tdir + i + '/' + 'test_out')
                 with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
-                print(i)
                 for k in range(len(r)):
                     filename = 'sample{:0>2}'.format(k) + '.txt'
                     pin = i + '/' + 'test_in' + '/' + filename
@@ -353,33 +273,105 @@ class PAtCoder:
             except:
                 pass
     def _test_atcoder(self, path):
-        name = self._path_to_contest_name(path)
-        atcoder = AtCoder(self.op)
-        atcoder.set_contest_url(name)
-        if self._check_sample_case(name):
+        self.path = path
+        self.name = self._path_to_contest_name(path)
+        self.url = 'https://' + self.name + '.contest.atcoder.jp'
+        atcoder = AtCoder(self.op, self.url, self.name)
+        print(self.name)
+        if self._check_sample_case(self.name):
             print('TestCase Download...')
             if atcoder.try_download():
                 print('TestCase Download Completed')
-                test = Test(self.op, path, name, atcoder.contest_url)
-                test.test()
+                self._test()
             else:
                 print('TestCase Download Failed')
         else:
-            test = Test(self.op, path, name, atcoder.contest_url)
-            test.test()
-            
+            self._test()
     def _url_to_contest_name(self, url):
         return url.split('//')[1].split('.')[0]
     def _path_to_contest_name(self, path):
         return path.replace('\\', '/').split('/')[-2:-1][0]
     def _check_sample_case(self, name):
         return not os.path.exists(self.op.crdir + 'samplecase' + '/' + name)
+    def _test(self):
+        retry = True
+        while retry:
+            os.system(self.op.cls)
+            test = Test(self.op, self.path, self.name, self.url)
+            if test.cmd != None:
+                print('Run >>> ' + ' '.join(test.cmd))
+                for i, j in test.test_iter():
+                    print(*(list(i[:2])), j)
+                retry = self._result_ui(test)
+    def _result_ui(self, test):
+        b = self.op.browser_text
+        print('samplecase view:[ENTER]' + b + '   retry:[R]' + '   quit:[Q]')
+        while 1:
+            c = self.op.getch()
+            if c == '\r' : return self._viewer_ui(test)
+            if c == 'q' : return False
+            if c == 'r' : return True
+            if c == 'p' and b : Popen([self.op.browser, test.url])
+    def _viewer_ui(self, test):
+        n = 0
+        b = self.op.browser_text
+        while 1:
+            self._draw_ior(n, test)
+            c = self.op.getch()
+            if c == "\r" : n = (n + 1) % len(test.result)
+            if c == "q" : return False
+            if c == "r" : return True
+            if c == "p" and b : Popen([self.op.browser, test.url])
+    def _draw_ior(self, n, test):
+        b = self.op.browser_text
+        r = test.result[n]
+        tw, th = os.get_terminal_size()
+        w, h = tw // 3 - 1, th - 6
+        lin = to_list(r[2], w, h)
+        lout = to_list(r[3], w, h)
+        lprg = to_list(r[4], w, h)
+        os.system(self.op.cls)
+        print(r[0], r[1], strlim('sample' + str(n), w))
+        print(' '.join([strlim('data_in', w), strlim('data_out', w), strlim('program_out', w)]))
+        for y in range(h):
+            print('|'.join([lin[y], lout[y], lprg[y]]))
+        print('-'*(tw-1))
+        print(strlim('next:[ENTER]' + b + '   retry:[R]' + '   quit:[Q]', w*2+2))
 
 def try_mkdir(dir):
     try:
         if not os.path.exists(dir) : os.mkdir(dir)
     except:
         pass
+def to_list(s, w, h):
+    mlen = lambda x : sum(2 if ord(y) > 255 else 1 for y in x)
+    r = []
+    for i in s.split('\n'):
+        if mlen(i) > w:
+            b = ''
+            bw = 0
+            for j in i:
+                c = mlen(j)
+                if bw + c > w:
+                    r += [b]
+                    b = ''
+                    bw = 0
+                b += j
+                bw += c
+            r += [b]
+        else:
+            r += [i]
+    if len(r) < h : r += [''] * (h-len(r))
+    if len(r) > h : r = r[:h]
+    for i in range(h):
+        r[i] = r[i] + ' ' * (w-mlen(r[i]))
+    return r
+def strlim(s, n):
+    if n <= 3:
+        s = s[:n]
+    elif len(s) > n:
+        s = s[:n-3] + '...'
+    return s.ljust(n, ' ')
 
 if __name__ == '__main__':
     PAtCoder()
