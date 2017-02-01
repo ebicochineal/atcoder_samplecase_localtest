@@ -381,4 +381,5 @@ def try_mkdir(dir):
     except:
         pass
 
-mode = PAtCoder()
+if __name__ == '__main__':
+    PAtCoder()
