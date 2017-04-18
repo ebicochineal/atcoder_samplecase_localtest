@@ -123,7 +123,6 @@ class Option:
     def __init__(self):
         p = os.path.dirname(__file__).replace('\\', '/') + '/'
         self.crdir = '' if p == '/' else p
-        self.cls = ''
         self.cmdc = {}
         self.cmdi = {}
         self.op = ''
