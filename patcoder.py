@@ -45,7 +45,7 @@ class Test():
         try:
             parh = self.op.crdir + 'compile/'
             for i in os.listdir(parh):
-                if i[:4] == "test":
+                if i[:4] == 'test':
                     os.remove(parh + i)
         except:
             pass
@@ -55,6 +55,7 @@ class Test():
             if lang in self.op.cmdc:
                 print('Compile >>> ' + path)
                 cmd = self.op.cmdc[lang]
+                print(' '.join(self._cmdio(cmd, path)))
                 os.system(' '.join(self._cmdio(cmd, path)))
                 path = self.op.crdir + 'compile/test.exe'
             return path
@@ -245,15 +246,15 @@ class PAtCoder:
         os.system(self.op.cls)
         try_mkdir(self.op.crdir + 'samplecase')
         try_mkdir(self.op.crdir + 'compile')
-        try_mkdir(self.op.crdir + 'temp')
+        try_mkdir(self.op.crdir + 'template')
         self._select(input('ContestURL or TestCodePath = '))
     def _select(self, s):
         if 'https://' in s or 'http://' in s:
-            self._temp_copy(s)
+            self._template_copy(s)
         else:
             s = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
             self._test_atcoder(s)
-    def _temp_copy(self, url):
+    def _template_copy(self, url):
         dir = self.op.crdir + self._url_to_contest_name(url) + '/'
         if os.path.exists(dir):
             pass
@@ -262,11 +263,11 @@ class PAtCoder:
                 num = int(input('abc:4, arc:4, other:? = '))
                 try_mkdir(dir)
                 print('Create >>> ' + dir)
-                temp = self.op.crdir + 'temp' + '/'
+                temp = self.op.crdir + 'template' + '/'
                 exts = [os.path.splitext(x)[1] for x in os.listdir(temp)]
                 for i in 'abcdefghijklmnopqrstuvwxyz'[0:num]:
                     for j in exts:
-                        shutil.copyfile(temp + 'temp' + j, dir + i + j)
+                        shutil.copyfile(temp + 'template' + j, dir + i + j)
                 print(', '.join(list('abcdefghijklmnopqrstuvwxyz'[0:num])))
                 print('Template Copy')
             except:
