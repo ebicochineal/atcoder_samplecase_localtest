@@ -221,8 +221,10 @@ class AtCoder:
         try:
             self._login()
             tdir = self.op.crdir + 'samplecase' + '/' + self.contest_name + '/'
+            url_list = self._problem_url_list()
+            if len(url_list) < 1 : return False
             try_mkdir(tdir)
-            for i, j in self._problem_url_list():
+            for i, j in url_list:
                 r = self._get_problem(j)
                 try_mkdir(tdir + i)
                 try_mkdir(tdir + i + '/' + 'test_in')
@@ -238,6 +240,7 @@ class AtCoder:
                     with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
             return True
         except:
+            try_mkdir(tdir)
             return False
 
 class PAtCoder:
@@ -247,13 +250,28 @@ class PAtCoder:
         try_mkdir(self.op.crdir + 'samplecase')
         try_mkdir(self.op.crdir + 'compile')
         try_mkdir(self.op.crdir + 'template')
-        self._select(input('ContestURL or TestCodePath = '))
+        
+        mode = ''
+        s = ''
+        if self.op.op:
+            s = self.op.op
+        else:
+            s = input('ContestURL or TestCodePath = ')
+        
+        mode = self._select(s)
+        if mode == 'init':
+            url = s
+            self._template_copy(url)
+        if mode == 'test':
+            path = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
+            self._test_atcoder(path)
+        
     def _select(self, s):
         if 'https://' in s or 'http://' in s:
-            self._template_copy(s)
+            return 'init'
         else:
-            s = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
-            self._test_atcoder(s)
+            return 'test'
+            
     def _template_copy(self, url):
         dir = self.op.crdir + self._url_to_contest_name(url) + '/'
         if os.path.exists(dir):
@@ -276,23 +294,26 @@ class PAtCoder:
         self.path = path
         self.name = self._path_to_contest_name(path)
         self.url = 'https://' + self.name + '.contest.atcoder.jp'
-        atcoder = AtCoder(self.op, self.url, self.name)
         print(self.name)
-        if self._check_sample_case(self.name):
-            print('TestCase Download...')
-            if atcoder.try_download():
-                print('TestCase Download Completed')
-                self._test()
-            else:
-                print('TestCase Download Failed')
+        self._samplecase_download()
+        if self._check_sample_case(self.name) : self._test()
+    def _samplecase_download(self):
+        if self._check_sample_case(self.name) : return
+        atcoder = AtCoder(self.op, self.url, self.name)
+        print('TestCase Download...')
+        if atcoder.try_download():
+            print('TestCase Download Completed')
         else:
-            self._test()
+            print('TestCase Download Failed')
     def _url_to_contest_name(self, url):
-        return url.split('//')[1].split('.')[0]
+        if 'beta.atcoder.jp' in url:
+            return url.split('contests/')[1].split('/')[0]
+        else:
+            return url.split('//')[1].split('.')[0]
     def _path_to_contest_name(self, path):
         return path.replace('\\', '/').split('/')[-2:-1][0]
     def _check_sample_case(self, name):
-        return not os.path.exists(self.op.crdir + 'samplecase' + '/' + name)
+        return os.path.exists(self.op.crdir + 'samplecase' + '/' + name)
     def _test(self):
         retry = True
         while retry:
@@ -341,6 +362,11 @@ class PAtCoder:
 def try_mkdir(dir):
     try:
         if not os.path.exists(dir) : os.mkdir(dir)
+    except:
+        pass
+def try_rmdir(dir):
+    try:
+        if os.path.exists(dir) : os.remove(dir)
     except:
         pass
 def to_list(s, w, h):
