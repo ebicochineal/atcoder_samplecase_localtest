@@ -221,7 +221,7 @@ class AtCoder:
         try:
             self._login()
             tdir = self.op.crdir + 'samplecase' + '/' + self.contest_name + '/'
-            url_list = self._problem_url_list()
+            url_list = list(self._problem_url_list())
             if len(url_list) < 1 : return False
             try_mkdir(tdir)
             for i, j in url_list:
@@ -240,7 +240,6 @@ class AtCoder:
                     with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
             return True
         except:
-            try_mkdir(tdir)
             return False
 
 class PAtCoder:
