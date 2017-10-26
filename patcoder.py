@@ -12,55 +12,15 @@ from zipfile import ZipFile, ZIP_STORED
 from subprocess import Popen, PIPE
 
 class Test():
-    def __init__(self, op, path, name, url):
+    def __init__(self, op, path, name, url, cmd):
         self.op = op
-        self.path = path # test_program_path
         self.name = name # contest_name
         self.problem = os.path.basename(path).split('.')[0]
         self.url = url + Test.read(self.op.crdir + 'samplecase/' + name + '/' + self.problem + '/url.txt').strip()
-        self.cmd = self._cmd(self.path)
+        self.cmd = cmd
         self.result = []
-    def _cmd(self, path):
-        lang = os.path.splitext(path)[1][1:]
-        path = self._try_compile(lang, path)
-        if path != None:
-            cmd = []
-            if lang in self.op.cmdi:
-                cmd = self.op.cmdi[lang]
-            else:
-                cmd = ['[i]']
-            return self._cmdio(cmd, path)
-        else:
-            return None
-    def _cmdio(self, cmd, path):
-        r = []
-        for i in cmd:
-            i = i.replace('[i]', path)
-            i = i.replace('[c]', path.split('/')[-1].split('.')[0])
-            i = i.replace('[o]', self.op.crdir + 'compile/test.exe')
-            i = i.replace('[d]', self.op.crdir + 'compile')
-            r += [i]
-        return r
-    def _try_compile_file_remove(self):
-        try:
-            parh = self.op.crdir + 'compile/'
-            for i in os.listdir(parh):
-                if i[:4] == 'test':
-                    os.remove(parh + i)
-        except:
-            pass
-    def _try_compile(self, lang, path):
-        self._try_compile_file_remove()
-        try:
-            if lang in self.op.cmdc:
-                print('Compile >>> ' + path)
-                cmd = self.op.cmdc[lang]
-                print(' '.join(self._cmdio(cmd, path)))
-                os.system(' '.join(self._cmdio(cmd, path)))
-                path = self.op.crdir + 'compile/test.exe'
-            return path
-        except:
-            return None
+    
+    
     def _run(self, data_in, data_out):
         green = lambda x : '\033[42;30m' + x + '\033[0m'
         yellow = lambda x : '\033[43;30m' + x + '\033[0m'
@@ -262,15 +222,66 @@ class PAtCoder:
             url = s
             self._template_copy(url)
         if mode == 'test':
-            path = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
-            self._test_atcoder(path)
+            self.path = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
+            self.name = self._path_to_contest_name(self.path)
+            self.url = 'https://' + self.name + '.contest.atcoder.jp'
+            print(self.name)
+            self._samplecase_download()
+            if not self._check_sample_case(self.name) : return
+            self._test_atcoder()
         
     def _select(self, s):
         if 'https://' in s or 'http://' in s:
             return 'init'
         else:
             return 'test'
-            
+    
+    def _cmd(self):
+        lang = os.path.splitext(self.path)[1][1:]
+        path = self.path
+        if lang in self.op.cmdc:
+            self._try_compile_file_remove()
+            path = self._try_compile(lang)
+        if path != None:
+            cmd = []
+            if lang in self.op.cmdi:
+                cmd = self.op.cmdi[lang]
+            else:
+                cmd = ['[i]']
+            return self._cmdio(cmd, path)
+        else:
+            return None
+    
+    def _cmdio(self, cmd, path):
+        r = []
+        for i in cmd:
+            i = i.replace('[i]', path)
+            i = i.replace('[c]', path.split('/')[-1].split('.')[0])
+            i = i.replace('[o]', self.op.crdir + 'compile/test.exe')
+            i = i.replace('[d]', self.op.crdir + 'compile')
+            r += [i]
+        return r
+    def _try_compile_file_remove(self):
+        try:
+            parh = self.op.crdir + 'compile/'
+            for i in os.listdir(parh):
+                if i[:4] == 'test':
+                    os.remove(parh + i)
+        except:
+            pass
+    def _try_compile(self, lang):
+        try:
+            print('Compile >>> ' + self.path)
+            cmd = self.op.cmdc[lang]
+            print(' '.join(self._cmdio(cmd, self.path)))
+            os.system(' '.join(self._cmdio(cmd, self.path)))
+            path = self.op.crdir + 'compile/test.exe'
+            if os.path.exists(path):
+                return path
+            else:
+                return None
+        except:
+            return None
     def _template_copy(self, url):
         dir = self.op.crdir + self._url_to_contest_name(url) + '/'
         if os.path.exists(dir):
@@ -289,13 +300,19 @@ class PAtCoder:
                 print('Template Copy')
             except:
                 pass
-    def _test_atcoder(self, path):
-        self.path = path
-        self.name = self._path_to_contest_name(path)
-        self.url = 'https://' + self.name + '.contest.atcoder.jp'
-        print(self.name)
-        self._samplecase_download()
-        if self._check_sample_case(self.name) : self._test()
+    def _test_atcoder(self):
+        retry = True
+        while retry:
+            os.system(self.op.cls)
+            cmd = self._cmd()
+            test = Test(self.op, self.path, self.name, self.url, cmd)
+            if cmd != None:
+                print('Run >>> ' + ' '.join(test.cmd))
+                for i, j in test.test_iter():
+                    print(*(list(i[:2])), j)
+                retry = self._result_ui(test)
+            else:
+                retry = False
     def _samplecase_download(self):
         if self._check_sample_case(self.name) : return
         atcoder = AtCoder(self.op, self.url, self.name)
@@ -313,16 +330,6 @@ class PAtCoder:
         return path.replace('\\', '/').split('/')[-2:-1][0]
     def _check_sample_case(self, name):
         return os.path.exists(self.op.crdir + 'samplecase' + '/' + name)
-    def _test(self):
-        retry = True
-        while retry:
-            os.system(self.op.cls)
-            test = Test(self.op, self.path, self.name, self.url)
-            if test.cmd != None:
-                print('Run >>> ' + ' '.join(test.cmd))
-                for i, j in test.test_iter():
-                    print(*(list(i[:2])), j)
-                retry = self._result_ui(test)
     def _result_ui(self, test):
         b = self.op.browser_text
         print('samplecase view:[ENTER]' + b + '   retry:[R]' + '   quit:[Q]')
