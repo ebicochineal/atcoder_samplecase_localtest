@@ -90,14 +90,18 @@ class Option:
         self.cls = ''
         self.browser = ''
         self.getch = None
+        self.win = False
+        self.unix = False
         sp = ';'
         if len(sys.argv) > 1 : self.op = sys.argv[1].replace('\\', '/')
         if 'win' in sys.platform and 'darwin' != sys.platform:
             self.cls = 'cls'
             self.getch = self.getch_win
+            self.win = True
         else:
             self.cls = 'clear'
             self.getch = self.getch_unix
+            self.unix = True
             sp = ':'
         with open(self.crdir + 'setting.ini', encoding='UTF-8') as f:
             mode = ''
@@ -137,6 +141,8 @@ class Option:
             return msvcrt.getch().decode('utf8')
         except:
             return ''
+    def is_unix(self) : return self.unix
+    def is_win(self) : return self.win
 
 class AtCoder:
     def __init__(self, op, url, contest_name):
@@ -277,6 +283,7 @@ class PAtCoder:
             os.system(' '.join(self._cmdio(cmd, self.path)))
             path = self.op.crdir + 'compile/test.exe'
             if os.path.exists(path):
+                if self.op.is_unix() : os.system('chmod u+x ' + path)
                 return path
             else:
                 return None
