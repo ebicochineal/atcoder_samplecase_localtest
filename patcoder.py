@@ -245,15 +245,16 @@ class PAtCoder:
     def _cmd(self):
         lang = os.path.splitext(self.path)[1][1:]
         path = self.path
+        tcmp = True
         if lang in self.op.cmdc:
             self._try_compile_file_remove()
-            path = self._try_compile(lang)
-        if path != None:
+            tcmp = self._try_compile(lang)
+        if path != None and tcmp:
             cmd = []
             if lang in self.op.cmdi:
                 cmd = self.op.cmdi[lang]
             else:
-                cmd = ['[i]']
+                cmd = ['[o]']
             return self._cmdio(cmd, path)
         else:
             return None
@@ -282,13 +283,10 @@ class PAtCoder:
             print(' '.join(self._cmdio(cmd, self.path)))
             os.system(' '.join(self._cmdio(cmd, self.path)))
             path = self.op.crdir + 'compile/test.exe'
-            if os.path.exists(path):
-                if self.op.is_unix() : os.system('chmod u+x ' + path)
-                return path
-            else:
-                return None
+            if os.path.exists(path) and self.op.is_unix() : os.system('chmod u+x ' + path)
+            return True
         except:
-            return None
+            return False
     def _template_copy(self, url):
         dir = self.op.crdir + self._url_to_contest_name(url) + '/'
         if os.path.exists(dir):
