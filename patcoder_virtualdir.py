@@ -86,7 +86,6 @@ class PatCoderVirtualDir:
         if 'http' not in s : return
         vurl = s
         vname = self._vurl_to_vname(vurl)
-        print('vname', vname)
         
         for i, u, p in self._i_urls_problems(vurl):
             if self._template_copy(vname, i, u, p):
