@@ -172,15 +172,28 @@ class AtCoder:
         for i in str(req.read()).split('\\n'):
             if t in i:
                 problem_url.add(i.split(t, 1)[1].split('"')[0])
-        s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
-        return zip(s, sorted(problem_url))
-    def _get_problem(self, url):
+        # s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
+        
+        ret = []
+        for i in sorted(problem_url) : ret += [(i.split('_')[1], i)]
+        return ret
+        # return zip(s, sorted(problem_url))
+    def _get_problem_a(self, url):
         url = self.contest_url + url
         req = self.opener.open(url)
         r = []
         for i in str(req.read().decode('utf-8')).split('<h3>入力例')[1:]:
             din = i.split('<pre>')[1].split('</pre>')[0]
             dout = i.split('<pre>')[2].split('</pre>')[0]
+            r += [(din.strip(), dout.strip())]
+        return r
+    def _get_problem_b(self, url):
+        url = self.contest_url + url
+        req = self.opener.open(url)
+        r = []
+        for i in str(req.read().decode('utf-8')).split('<h3>入力例')[1:]:
+            din = i.split('<pre class="prettyprint linenums">')[1].split('</pre>')[0]
+            dout = i.split('<pre class="prettyprint linenums">')[2].split('</pre>')[0]
             r += [(din.strip(), dout.strip())]
         return r
     def try_download(self):
@@ -191,19 +204,34 @@ class AtCoder:
             if len(url_list) < 1 : return False
             try_mkdir(tdir)
             for i, j in url_list:
-                r = self._get_problem(j)
-                try_mkdir(tdir + i)
-                try_mkdir(tdir + i + '/' + 'test_in')
-                try_mkdir(tdir + i + '/' + 'test_out')
-                with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
-                for k in range(len(r)):
-                    filename = 'sample{:0>2}'.format(k) + '.txt'
-                    pin = i + '/' + 'test_in' + '/' + filename
-                    pout = i + '/' + 'test_out' + '/' + filename
-                    fin = tdir + pin
-                    fout = tdir + pout
-                    with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
-                    with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
+                try:
+                    r = self._get_problem_a(j)
+                    try_mkdir(tdir + i)
+                    try_mkdir(tdir + i + '/' + 'test_in')
+                    try_mkdir(tdir + i + '/' + 'test_out')
+                    with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
+                    for k in range(len(r)):
+                        filename = 'sample{:0>2}'.format(k) + '.txt'
+                        pin = i + '/' + 'test_in' + '/' + filename
+                        pout = i + '/' + 'test_out' + '/' + filename
+                        fin = tdir + pin
+                        fout = tdir + pout
+                        with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
+                        with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
+                except:
+                    r = self._get_problem_b(j)
+                    try_mkdir(tdir + i)
+                    try_mkdir(tdir + i + '/' + 'test_in')
+                    try_mkdir(tdir + i + '/' + 'test_out')
+                    with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
+                    for k in range(len(r)):
+                        filename = 'sample{:0>2}'.format(k) + '.txt'
+                        pin = i + '/' + 'test_in' + '/' + filename
+                        pout = i + '/' + 'test_out' + '/' + filename
+                        fin = tdir + pin
+                        fout = tdir + pout
+                        with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
+                        with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
             return True
         except:
             return False
