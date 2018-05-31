@@ -100,6 +100,9 @@ class PatCoderVirtualDir:
         if 'abc' in url and 'arc' in url:
             if ret == 'a' : return 'c'
             if ret == 'b' : return 'd'
+        if ret in '1234':
+            return '0abcd'[int(ret)]
+            
         return ret
     
     def _line_to_url_problem(self, line):

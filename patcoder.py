@@ -167,17 +167,14 @@ class AtCoder:
     def _problem_url_list(self):
         url = self.contest_url + '/assignments'
         req = self.opener.open(url)
-        problem_url = set([])
+        problem_url = []
         t = '<a class="linkwrapper" href="'
         for i in str(req.read()).split('\\n'):
             if t in i:
-                problem_url.add(i.split(t, 1)[1].split('"')[0])
-        # s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
-        
-        ret = []
-        for i in sorted(problem_url) : ret += [(i.split('_')[1], i)]
-        return ret
-        # return zip(s, sorted(problem_url))
+                spurl = i.split(t, 1)[1].split('"')[0]
+                if spurl not in problem_url : problem_url += [spurl]
+        s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
+        return zip(s, problem_url)
     def _get_problem_a(self, url):
         url = self.contest_url + url
         req = self.opener.open(url)
