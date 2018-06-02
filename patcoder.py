@@ -20,7 +20,6 @@ class Test():
         self.cmd = cmd
         self.result = []
     
-    
     def _run(self, data_in, data_out):
         green = lambda x : '\033[42;30m' + x + '\033[0m'
         yellow = lambda x : '\033[43;30m' + x + '\033[0m'
@@ -55,6 +54,8 @@ class Test():
         test_file_list = [x for x in os.listdir(dpath+'test_in')]
         for i in test_file_list:
             data_in = Test.read(dpath + 'test_in/' + i)
+            if not os.path.exists(dpath + 'test_out/' + i):
+                with open(dpath + 'test_out/' + i, 'w') as f : f.write('')
             data_out = Test.read(dpath + 'test_out/' + i)
             r = self._run(data_in, data_out)
             self.result += [r]
