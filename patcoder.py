@@ -20,6 +20,7 @@ class Test():
         self.cmd = cmd
         self.result = []
     
+    
     def _run(self, data_in, data_out):
         green = lambda x : '\033[42;30m' + x + '\033[0m'
         yellow = lambda x : '\033[43;30m' + x + '\033[0m'
@@ -54,8 +55,6 @@ class Test():
         test_file_list = [x for x in os.listdir(dpath+'test_in')]
         for i in test_file_list:
             data_in = Test.read(dpath + 'test_in/' + i)
-            if not os.path.exists(dpath + 'test_out/' + i):
-                with open(dpath + 'test_out/' + i, 'w') as f : f.write('')
             data_out = Test.read(dpath + 'test_out/' + i)
             r = self._run(data_in, data_out)
             self.result += [r]
@@ -167,31 +166,21 @@ class AtCoder:
         self.opener.open(url, post)
     def _problem_url_list(self):
         url = self.contest_url + '/assignments'
-        req = self.opener.open(url)
-        problem_url = []
+        res = self.opener.open(url)
+        problem_url = set([])
         t = '<a class="linkwrapper" href="'
-        for i in str(req.read()).split('\\n'):
+        for i in str(res.read()).split('\\n'):
             if t in i:
-                spurl = i.split(t, 1)[1].split('"')[0]
-                if spurl not in problem_url : problem_url += [spurl]
+                problem_url.add(i.split(t, 1)[1].split('"')[0])
         s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
-        return zip(s, problem_url)
-    def _get_problem_a(self, url):
+        return zip(s, sorted(problem_url))
+    def _get_problem(self, url):
         url = self.contest_url + url
-        req = self.opener.open(url)
+        res = self.opener.open(url)
         r = []
-        for i in str(req.read().decode('utf-8')).split('<h3>入力例')[1:]:
+        for i in str(res.read().decode('utf-8')).split('<h3>入力例')[1:]:
             din = i.split('<pre>')[1].split('</pre>')[0]
             dout = i.split('<pre>')[2].split('</pre>')[0]
-            r += [(din.strip(), dout.strip())]
-        return r
-    def _get_problem_b(self, url):
-        url = self.contest_url + url
-        req = self.opener.open(url)
-        r = []
-        for i in str(req.read().decode('utf-8')).split('<h3>入力例')[1:]:
-            din = i.split('<pre class="prettyprint linenums">')[1].split('</pre>')[0]
-            dout = i.split('<pre class="prettyprint linenums">')[2].split('</pre>')[0]
             r += [(din.strip(), dout.strip())]
         return r
     def try_download(self):
@@ -202,34 +191,19 @@ class AtCoder:
             if len(url_list) < 1 : return False
             try_mkdir(tdir)
             for i, j in url_list:
-                try:
-                    r = self._get_problem_a(j)
-                    try_mkdir(tdir + i)
-                    try_mkdir(tdir + i + '/' + 'test_in')
-                    try_mkdir(tdir + i + '/' + 'test_out')
-                    with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
-                    for k in range(len(r)):
-                        filename = 'sample{:0>2}'.format(k) + '.txt'
-                        pin = i + '/' + 'test_in' + '/' + filename
-                        pout = i + '/' + 'test_out' + '/' + filename
-                        fin = tdir + pin
-                        fout = tdir + pout
-                        with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
-                        with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
-                except:
-                    r = self._get_problem_b(j)
-                    try_mkdir(tdir + i)
-                    try_mkdir(tdir + i + '/' + 'test_in')
-                    try_mkdir(tdir + i + '/' + 'test_out')
-                    with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
-                    for k in range(len(r)):
-                        filename = 'sample{:0>2}'.format(k) + '.txt'
-                        pin = i + '/' + 'test_in' + '/' + filename
-                        pout = i + '/' + 'test_out' + '/' + filename
-                        fin = tdir + pin
-                        fout = tdir + pout
-                        with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
-                        with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
+                r = self._get_problem(j)
+                try_mkdir(tdir + i)
+                try_mkdir(tdir + i + '/' + 'test_in')
+                try_mkdir(tdir + i + '/' + 'test_out')
+                with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
+                for k in range(len(r)):
+                    filename = 'sample{:0>2}'.format(k) + '.txt'
+                    pin = i + '/' + 'test_in' + '/' + filename
+                    pout = i + '/' + 'test_out' + '/' + filename
+                    fin = tdir + pin
+                    fout = tdir + pout
+                    with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
+                    with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
             return True
         except:
             return False
@@ -358,7 +332,7 @@ class PAtCoder:
         else:
             return url.split('//')[1].split('.')[0]
     def _path_to_contest_name(self, path):
-        return path.replace('\\', '/').split('/')[-2:-1][0]
+        return os.path.abspath(path).replace('\\', '/').split('/')[-2:-1][0]
     def _check_sample_case(self, name):
         return os.path.exists(self.op.crdir + 'samplecase' + '/' + name)
     def _result_ui(self, test):

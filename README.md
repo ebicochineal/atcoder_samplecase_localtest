@@ -12,6 +12,8 @@
 #### patcoder_virtualdir.py
 - バーチャルコンテスト用のコンテストフォルダ作成用スクリプト  
 - テストはpatcoder.pyで  
-
+#### patcoder_submit.py
+- atcoderに提出
+- setting.iniで設定すると提出言語を絞ることができる
 
 
