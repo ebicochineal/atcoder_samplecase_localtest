@@ -222,7 +222,7 @@ class PAtCoder:
             s = self.op.op
         else:
             s = input('ContestURL or TestCodePath = ')
-        
+        if s == '' : return
         mode = self._select(s)
         if mode == 'init':
             url = s
