@@ -225,7 +225,7 @@ class PAtCoder:
         if s == '' : return
         mode = self._select(s)
         if mode == 'init':
-            url = s
+            url = self._to_old_atcoder_url(s)
             self._template_copy(url)
         if mode == 'test':
             self.path = s.replace('\"', '').replace('\'', '').lstrip().rstrip()
@@ -235,13 +235,17 @@ class PAtCoder:
             self._samplecase_download()
             if not self._check_sample_case(self.name) : return
             self._test_atcoder()
-        
+    def _to_old_atcoder_url(self, s):
+        r = s
+        if 'https://atcoder.jp/' in s:
+            a, b, c = s.split('//')[1].split('/')[:3]
+            r = 'https://' + c + '.' + 'contest.atcoder.jp/'
+        return r
     def _select(self, s):
         if 'https://' in s or 'http://' in s:
             return 'init'
         else:
             return 'test'
-    
     def _cmd(self):
         lang = os.path.splitext(self.path)[1][1:]
         path = self.path
@@ -258,7 +262,6 @@ class PAtCoder:
             return self._cmdio(cmd, path)
         else:
             return None
-    
     def _cmdio(self, cmd, path):
         r = []
         for i in cmd:
@@ -343,7 +346,7 @@ class PAtCoder:
             if c == '\r' : return self._viewer_ui(test)
             if c == 'q' : return False
             if c == 'r' : return True
-            if c == 'p' and b : Popen([self.op.browser, test.url])
+            if c == 'p' and b : Popen([self.op.browser, self._to_new_atcoder_url(test.url)])
     def _viewer_ui(self, test):
         n = 0
         b = self.op.browser_text
@@ -353,7 +356,11 @@ class PAtCoder:
             if c == "\r" : n = (n + 1) % len(test.result)
             if c == "q" : return False
             if c == "r" : return True
-            if c == "p" and b : Popen([self.op.browser, test.url])
+            if c == "p" and b : Popen([self.op.browser, self._to_new_atcoder_url(test.url)])
+    def _to_new_atcoder_url(self, s):
+        a, b, c = s.split('//')[1].split('/')
+        r = 'https://atcoder.jp/contests/' + a.split('.')[0] + '/tasks/' + c
+        return r
     def _draw_ior(self, n, test):
         b = self.op.browser_text
         r = test.result[n]
