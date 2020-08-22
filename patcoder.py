@@ -16,7 +16,8 @@ class Test():
         self.op = op
         self.name = name # contest_name
         self.problem = os.path.basename(path).split('.')[0]
-        self.url = url + Test.read(self.op.crdir + 'samplecase/' + name + '/' + self.problem + '/url.txt').strip()
+        self.url = Test.read(self.op.crdir + 'samplecase/' + name + '/' + self.problem + '/url.txt').strip()
+        
         self.cmd = cmd
         self.result = []
     
@@ -160,22 +161,28 @@ class AtCoder:
                     self.username = i.split()[1].strip()
                 elif 'password' in i:
                     self.password = i.split()[1].strip()
-        user = {'name': self.username, 'password': self.password}
-        post = urllib.parse.urlencode(user).encode('utf-8')
-        url = 'https://practice.contest.atcoder.jp/login'
-        self.opener.open(url, post)
-    def _problem_url_list(self):
-        url = self.contest_url + '/assignments'
+        url = 'https://atcoder.jp/login'
         res = self.opener.open(url)
+        token = str(res.read()).split('csrf_token\" value=\"')[1].split('\"')[0]
+        
+        user = {'username': self.username, 'password': self.password, 'csrf_token': token}
+        post = urllib.parse.urlencode(user).encode('utf-8')
+        
+        self.opener.open(url, post)
+        
+    def _problem_url_list(self):
+        url = self.contest_url + '/tasks'
+        
+        res = self.opener.open(url)
+        
         problem_url = set([])
-        t = '<a class="linkwrapper" href="'
+        t = '<td class="text-center no-break"><a href="'
         for i in str(res.read()).split('\\n'):
             if t in i:
-                problem_url.add(i.split(t, 1)[1].split('"')[0])
+                problem_url.add('https://atcoder.jp' + i.split(t, 1)[1].split('"')[0])
         s = 'abcdefghijklmnopqrstuvwxyz'[:len(problem_url)]
         return zip(s, sorted(problem_url))
     def _get_problem(self, url):
-        url = self.contest_url + url
         res = self.opener.open(url)
         r = []
         for i in str(res.read().decode('utf-8')).split('<h3>入力例')[1:]:
@@ -184,29 +191,35 @@ class AtCoder:
             r += [(din.strip(), dout.strip())]
         return r
     def try_download(self):
-        try:
-            self._login()
-            tdir = self.op.crdir + 'samplecase' + '/' + self.contest_name + '/'
-            url_list = list(self._problem_url_list())
-            if len(url_list) < 1 : return False
-            try_mkdir(tdir)
-            for i, j in url_list:
-                r = self._get_problem(j)
-                try_mkdir(tdir + i)
-                try_mkdir(tdir + i + '/' + 'test_in')
-                try_mkdir(tdir + i + '/' + 'test_out')
-                with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
-                for k in range(len(r)):
-                    filename = 'sample{:0>2}'.format(k) + '.txt'
-                    pin = i + '/' + 'test_in' + '/' + filename
-                    pout = i + '/' + 'test_out' + '/' + filename
-                    fin = tdir + pin
-                    fout = tdir + pout
-                    with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
-                    with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
-            return True
-        except:
-            return False
+        f = False
+        for retry in range(3):
+            try:
+                self._login()
+                tdir = self.op.crdir + 'samplecase' + '/' + self.contest_name + '/'
+                url_list = list(self._problem_url_list())
+                if len(url_list) < 1 : return False
+                try_mkdir(tdir)
+                for i, j in url_list:
+                    r = self._get_problem(j)
+                    try_mkdir(tdir + i)
+                    try_mkdir(tdir + i + '/' + 'test_in')
+                    try_mkdir(tdir + i + '/' + 'test_out')
+                    with open(tdir + i + '/' + 'url.txt', 'wb') as f : f.write(j.encode('utf-8'))
+                    for k in range(len(r)):
+                        filename = 'sample{:0>2}'.format(k) + '.txt'
+                        pin = i + '/' + 'test_in' + '/' + filename
+                        pout = i + '/' + 'test_out' + '/' + filename
+                        fin = tdir + pin
+                        fout = tdir + pout
+                        with open(fin, 'wb') as f : f.write(r[k][0].encode('utf-8'))
+                        with open(fout, 'wb') as f : f.write(r[k][1].encode('utf-8'))
+                f = True
+            except:
+                f = False
+            if f : return True
+            print('retry...')
+            time.sleep(5)
+        return False
 
 class PAtCoder:
     def __init__(self):
@@ -296,7 +309,7 @@ class PAtCoder:
             pass
         else:
             try:
-                num = int(input('abc:4, arc:4, other:? = '))
+                num = int(input('abc:4, arc:4, new_abc:6, new_arc:6, other:? = '))
                 try_mkdir(dir)
                 print('Create >>> ' + dir)
                 temp = self.op.crdir + 'template' + '/'
@@ -316,6 +329,7 @@ class PAtCoder:
             test = Test(self.op, self.path, self.name, self.url, cmd)
             if cmd != None:
                 print('Run >>> ' + ' '.join(test.cmd))
+                print(test.url)
                 for i, j in test.test_iter():
                     print(*(list(i[:2])), j)
                 retry = self._result_ui(test)
@@ -346,7 +360,7 @@ class PAtCoder:
             if c == '\r' : return self._viewer_ui(test)
             if c == 'q' : return False
             if c == 'r' : return True
-            if c == 'p' and b : Popen([self.op.browser, self._to_new_atcoder_url(test.url)])
+            if c == 'p' and b : Popen([self.op.browser, test.url])
     def _viewer_ui(self, test):
         n = 0
         b = self.op.browser_text
@@ -356,11 +370,11 @@ class PAtCoder:
             if c == "\r" : n = (n + 1) % len(test.result)
             if c == "q" : return False
             if c == "r" : return True
-            if c == "p" and b : Popen([self.op.browser, self._to_new_atcoder_url(test.url)])
-    def _to_new_atcoder_url(self, s):
-        a, b, c = s.split('//')[1].split('/')
-        r = 'https://atcoder.jp/contests/' + a.split('.')[0] + '/tasks/' + c
-        return r
+            if c == "p" and b : Popen([self.op.browser, test.url])
+    # def _to_new_atcoder_url(self, s):
+    #     a, b, c = s.split('//')[1].split('/')
+    #     r = 'https://atcoder.jp/contests/' + a.split('.')[0] + '/tasks/' + c
+    #     return r
     def _draw_ior(self, n, test):
         b = self.op.browser_text
         r = test.result[n]
